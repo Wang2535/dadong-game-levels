@@ -107,7 +107,7 @@ export function GameBoardV2({ gameStateManager, onGameEnd, onExit }: GameBoardV2
               {victoryResult.victoryDescription}
             </p>
             <div className="text-sm text-slate-500 text-center">
-              游戏进行了 {victoryResult.turnsPlayed} 个回合
+              游戏进行了 {victoryResult.roundsPlayed} 个回合
             </div>
             <div className="flex gap-2">
               <Button onClick={onExit} className="flex-1">
