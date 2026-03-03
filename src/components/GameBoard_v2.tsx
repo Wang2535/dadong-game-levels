@@ -1,6 +1,6 @@
-﻿/**
- * GameBoard v2 - 杩炴帴GameLoop鐨勬父鎴忎富缁勪欢
- * 瀹炵幇瀹屾暣鐨?闃舵鍥炲悎娴佺▼
+/**
+ * GameBoard v2 - 连接GameLoop的游戏主组件
+ * 实现完整的7阶段回合流程
  */
 
 import { useEffect, useRef, useState, useCallback } from 'react';
@@ -28,7 +28,7 @@ export function GameBoardV2({ gameStateManager, onGameEnd, onExit }: GameBoardV2
   
   const gameLoopRef = useRef<GameLoop | null>(null);
 
-  // 鍒濆鍖朑ameLoop
+  // 初始化GameLoop
   useEffect(() => {
     const config: GameLoopConfig = {
       gameStateManager,
@@ -47,7 +47,7 @@ export function GameBoardV2({ gameStateManager, onGameEnd, onExit }: GameBoardV2
         onGameEnd(result.winner, result.victoryType || 'unknown');
       },
       onError: (error) => {
-        console.error('[GameBoardV2] GameLoop閿欒:', error);
+        console.error('[GameBoardV2] GameLoop错误:', error);
       }
     };
 
@@ -59,32 +59,33 @@ export function GameBoardV2({ gameStateManager, onGameEnd, onExit }: GameBoardV2
     };
   }, [gameStateManager, onGameEnd]);
 
-  // 澶勭悊鐜╁鍑虹墝
+  // 处理玩家出牌
   const handlePlayCard = useCallback((cardIndex: number) => {
     if (!gameLoopRef.current) return false;
     return gameLoopRef.current.playerPlayCard(cardIndex);
   }, []);
 
-  // 澶勭悊鐜╁缁撴潫鍥炲悎
+  // 处理玩家结束回合
   const handleEndTurn = useCallback(() => {
     if (!gameLoopRef.current) return;
     gameLoopRef.current.playerEndPhase();
   }, []);
 
-  // 澶勭悊鐜╁寮冪墝
+  // 处理玩家弃牌
   const handleDiscardCard = useCallback((cardIndex: number) => {
     if (!gameLoopRef.current) return;
     gameLoopRef.current.playerDiscardCard(cardIndex);
   }, []);
 
-  // 鑾峰彇褰撳墠鐜╁
+  // 获取当前玩家
   const currentPlayer = gameState?.players[gameState.currentPlayerIndex];
 
-  // 妫€鏌ユ槸鍚︽槸褰撳墠鐜╁鐨勫洖鍚?  const isPlayerTurn = useCallback((playerId: string) => {
+  // 检查是否是当前玩家的回合
+  const isPlayerTurn = useCallback((playerId: string) => {
     return gameState?.players[gameState.currentPlayerIndex]?.id === playerId;
   }, [gameState]);
 
-  // 娓叉煋鑳滃埄寮圭獥
+  // 渲染胜利弹窗
   if (victoryResult?.isGameOver) {
     return (
       <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4">
@@ -95,9 +96,9 @@ export function GameBoardV2({ gameStateManager, onGameEnd, onExit }: GameBoardV2
             </div>
             <CardTitle className="text-2xl text-white">
               {victoryResult.winner ? (
-                victoryResult.winner === 'attacker' ? '杩涙敾鏂硅儨鍒╋紒' : '闃插尽鏂硅儨鍒╋紒'
+                victoryResult.winner === 'attacker' ? '进攻方胜利！' : '防御方胜利！'
               ) : (
-                '骞冲眬锛?
+                '平局！'
               )}
             </CardTitle>
           </CardHeader>
@@ -106,10 +107,12 @@ export function GameBoardV2({ gameStateManager, onGameEnd, onExit }: GameBoardV2
               {victoryResult.victoryDescription}
             </p>
             <div className="text-sm text-slate-500 text-center">
-              娓告垙杩涜浜?{victoryResult.roundsPlayed} 涓洖鍚?            </div>
+              游戏进行了 {victoryResult.turnsPlayed} 个回合
+            </div>
             <div className="flex gap-2">
               <Button onClick={onExit} className="flex-1">
-                杩斿洖涓昏彍鍗?              </Button>
+                返回主菜单
+              </Button>
             </div>
           </CardContent>
         </Card>
@@ -117,7 +120,8 @@ export function GameBoardV2({ gameStateManager, onGameEnd, onExit }: GameBoardV2
     );
   }
 
-  // 娓叉煋璁℃椂鍣?  const renderTimer = () => {
+  // 渲染计时器
+  const renderTimer = () => {
     if (!timerDisplay) return null;
     
     const isLowTime = timerDisplay.remaining <= 5;
@@ -134,27 +138,27 @@ export function GameBoardV2({ gameStateManager, onGameEnd, onExit }: GameBoardV2
     );
   };
 
-  // 娓叉煋闃舵淇℃伅
+  // 渲染阶段信息
   const renderPhaseInfo = () => {
     const phaseNames: Record<TurnPhase, string> = {
-      judgment: '鍒ゅ畾闃舵',
-      recovery: '鎭㈠闃舵',
-      draw: '鎽哥墝闃舵',
-      action: '琛屽姩闃舵',
-      response: '鍝嶅簲闃舵',
-      discard: '寮冪墝闃舵',
-      end: '缁撴潫闃舵'
+      judgment: '判定阶段',
+      recovery: '恢复阶段',
+      draw: '摸牌阶段',
+      action: '行动阶段',
+      response: '响应阶段',
+      discard: '弃牌阶段',
+      end: '结束阶段'
     };
 
     return (
       <div className="fixed top-4 left-4 z-50 bg-slate-800 px-4 py-2 rounded-lg">
-        <div className="text-sm text-slate-400">褰撳墠闃舵</div>
+        <div className="text-sm text-slate-400">当前阶段</div>
         <div className="text-lg font-bold text-white">{phaseNames[currentPhase]}</div>
       </div>
     );
   };
 
-  // 娓叉煋AI鎬濊€冩寚绀哄櫒
+  // 渲染AI思考指示器
   const renderAIThinking = () => {
     if (!isAIThinking) return null;
     
@@ -163,7 +167,7 @@ export function GameBoardV2({ gameStateManager, onGameEnd, onExit }: GameBoardV2
         <div className="w-2 h-2 bg-white rounded-full animate-bounce" />
         <div className="w-2 h-2 bg-white rounded-full animate-bounce" style={{ animationDelay: '0.1s' }} />
         <div className="w-2 h-2 bg-white rounded-full animate-bounce" style={{ animationDelay: '0.2s' }} />
-        <span className="text-white">AI鎬濊€冧腑...</span>
+        <span className="text-white">AI思考中...</span>
       </div>
     );
   };
@@ -171,7 +175,7 @@ export function GameBoardV2({ gameStateManager, onGameEnd, onExit }: GameBoardV2
   if (!gameState || !currentPlayer) {
     return (
       <div className="min-h-screen bg-slate-950 flex items-center justify-center">
-        <div className="text-white">鍔犺浇娓告垙涓?..</div>
+        <div className="text-white">加载游戏中...</div>
       </div>
     );
   }
@@ -196,4 +200,3 @@ export function GameBoardV2({ gameStateManager, onGameEnd, onExit }: GameBoardV2
 }
 
 export default GameBoardV2;
-
